@@ -1,6 +1,6 @@
 # Security
 
-This is a public review snapshot, not an invitation to probe a live service. No production account, address, credentials, deployment identifiers or private data are supplied.
+This is a public review snapshot, not an invitation to probe a live service. No production account identity, private service address, credentials, deployment identifiers or private data are supplied. A generic English voice sample and privacy-framed Gemini screenshots are intentionally public demonstration artifacts.
 
 ## Trust boundary
 
@@ -25,6 +25,8 @@ These are implementation and template controls. A different host or deployment m
 A durable ledger records request status and a content digest before the upstream POST. Identical retries recover the existing result; reusing a UUID for other text or voices is rejected. Ambiguous upstream outcomes are not retried automatically.
 
 The ledger does not store input text. Audio and authentication data remain sensitive and require operator-managed retention and backups. Diagnostics contain only bounded route/method/status/error enums and the authorization scheme, never the header value, OAuth code, body or query string.
+
+The publication guard permits exactly one reviewed MP3 path and checks its size, format signature and manifest checksum. Other audio files remain excluded. This repository exception does not modify service authentication or expose the private storage volume.
 
 ## Limitations to assess
 
