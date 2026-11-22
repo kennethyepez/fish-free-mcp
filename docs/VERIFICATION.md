@@ -20,7 +20,7 @@ The tests cover:
 
 ## Browser inspection
 
-All images were captured from the running loopback fixture after building this snapshot. The browser inspected the actual rendered DOM and pages. The setup disclosure was opened and closed, the credential fields remained empty, and the mobile page was checked for horizontal overflow.
+The local interface images were captured from the running loopback fixture after building this snapshot. The browser inspected the actual rendered DOM and pages. The setup disclosure was opened and closed, the credential fields remained empty, and the mobile page was checked for horizontal overflow. The additional Gemini images come from the connected English demonstration described below.
 
 | Image | Browser viewport | Observed state |
 | --- | --- | --- |
@@ -28,10 +28,16 @@ All images were captured from the running loopback fixture after building this s
 | `screenshots/access-setup.jpg` | 1280 × 900, full-page capture | Enrollment disclosure open, fields empty |
 | `screenshots/mobile.jpg` | 390 × 844 | Stacked layout, sign-in and setup controls |
 
-No screenshot contains a production browser account, provider credential, enrollment code, recording, private hostname or operational identifier. The images are original browser captures, not edited production screenshots. Screenshot appearance alone does not prove physical passkey enrollment, provider synthesis, or accessibility compliance.
+No screenshot includes an account identifier, provider credential, enrollment code or private service address. Gemini captures include only the relevant content area; the account/avatar rail is outside the capture. Their pixels and text have not been retouched. Screenshot appearance alone does not prove physical passkey enrollment, audible quality or accessibility compliance.
 
-## Private integration boundary
+## Connected English demonstration
 
-The originating private implementation was exercised against Gemini and Fish for configuration, synthesis, retrieval and authenticated download, including token renewal. This snapshot deliberately excludes the account, deployment and audio used for that check. A reviewer must supply their own authorized credentials to reproduce the connected flow; the local fixture makes no provider request.
+On November 22, 2026, Gemini invoked the authenticated gateway to generate the published English MP3 using `s2.1-pro-free` and the public Abby voice. The generated file and the retrieved specimen match by SHA-256. Full MP3 decoding succeeds; the original file is mono, 44.1 kHz, 174,706 bytes and 10.919125 seconds long. Its [manifest](audio/demo.json) records the public sample details without operational identifiers.
+
+A fresh Gemini Hydrogen conversation received the complete MP3, with no expected transcript supplied. The attachment transcription matched the spoken script in English. Hydrogen explicitly reported access to that transcript, not to acoustic properties; this is a spoken-text check, **not** a claimed perceptual listening approval. No subjective voice-quality score is asserted.
+
+The screenshots show the linked account status, three live schemas, a configuration tool-call result and the completed English demonstration. The account identity and private service URL remain excluded. The generic English sample is explicitly public; private recordings and raw service receipts are not included.
+
+A reviewer must supply their own authorized credentials to reproduce synthesis. The local fixture makes no provider request. See [the demonstration notes](GEMINI-DEMO.md) for the evidence sequence and playback instructions.
 
 Physical backup-authenticator recovery and deployment-specific backup/restore are not claimed as verified here. See [deployment prerequisites](DEPLOYMENT.md) and [security limitations](../SECURITY.md).

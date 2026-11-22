@@ -1,0 +1,14 @@
+{
+  "file": "fish-free-mcp-demo-en.mp3",
+  "language": "en-US",
+  "voice": "Abby: English Woman (US) - Audiobook",
+  "voice_type": "public voice; not a personal voice clone",
+  "model": "s2.1-pro-free",
+  "duration_seconds": 10.919125,
+  "bytes": 174706,
+  "sha256": "efe36541d07a70179f41015f2e392314ef873c7c7518c989a558a70f1fc81e58",
+  "script": "Welcome to the Fish Free MCP demo. Gemini sends a secure request, and Fish generates this English voice sample. Your API key stays on the server.",
+  "generated_on": "2026-11-22",
+  "generation_path": "Gemini Apps -> authenticated MCP gateway -> Fish Audio API",
+  "processing": "Original provider MP3; no trimming, resampling or speed changes."
+}

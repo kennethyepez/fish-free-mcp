@@ -2,9 +2,11 @@
 
 A single-owner MCP gateway that lets Gemini generate speech with **Fish S2.1 Pro Free** while keeping the provider API key on the server.
 
-This repository is a runnable, sanitized technical-review snapshot by **Kenneth Yepez**. It includes the application, security tests, a constrained container template, and screenshots of the actual local interface. It does not contain a live deployment, credentials, customer material, or production history.
+This repository is a runnable, sanitized technical-review snapshot by **Kenneth Yepez**. It includes the application, security tests, a constrained container template, real Gemini integration screenshots and an original English voice sample. It contains no deployment credentials, personal recordings or private operational history.
 
-![Desktop sign-in interface](docs/screenshots/desktop.jpg)
+![English voice sample generated through the connected Gemini app](docs/screenshots/gemini-result.jpg)
+
+**[Download the original English MP3 — 10.92 seconds](docs/audio/fish-free-mcp-demo-en.mp3?raw=1)** · [Transcript](docs/audio/transcript.txt) · [Sample integrity and details](docs/audio/demo.json)
 
 ## The problem and the result
 
@@ -12,7 +14,40 @@ A connected voice integration can expose only its paid models, even when the pro
 
 This gateway exposes three narrow MCP tools and keeps synthesis behind an authenticated service. Gemini receives a scoped OAuth connection, not the Fish API key. The application fixes the provider, endpoint, model and playback speed; it cannot silently switch to a paid model.
 
-The originating private deployment was exercised through Gemini: configuration lookup, one Spanish synthesis, retrieval of the same request, and a private MP3 download. The public snapshot does not include that account, recording, hostname or operational evidence. See [verification scope](docs/VERIFICATION.md) for the checks reproducible from this repository and their limits.
+The connected demonstration exercises Gemini configuration lookup, English synthesis, retrieval of the same request and delivery of the original MP3. The screenshots and public audio below document that flow without publishing the account or private service address. See [verification scope](docs/VERIFICATION.md) for the checks and their limits.
+
+## Gemini integration demo
+
+### 1. A real linked account
+
+Gemini Developer Mode shows the private MCP app as **Connected / Account linked**. No provider API key is entered into the conversation.
+
+![Connected MCP app in Gemini](docs/screenshots/gemini-connected.jpg)
+
+### 2. Three authenticated tools
+
+The live schema exposes `get_configuration`, `generate_speech` and `get_speech`. Read-only retrieval is separate from synthesis.
+
+![Three live MCP tools in Gemini Developer Mode](docs/screenshots/gemini-tools.jpg)
+
+### 3. A real tool call
+
+The configuration lookup returns the fixed model and paid-fallback policy; Gemini's event log records the tool call.
+
+![Gemini configuration lookup and tool-call evidence](docs/screenshots/gemini-tool-call.jpg)
+
+### 4. The original English audio
+
+> Welcome to the Fish Free MCP demo. Gemini sends a secure request, and Fish generates this English voice sample. Your API key stays on the server.
+
+- **Model:** `s2.1-pro-free`
+- **Voice:** Abby, a public US English catalog voice; no personal voice was cloned.
+- **Original file:** MP3, mono, 44.1 kHz, 10.919125 seconds.
+- **Processing:** no editing, trimming, conversion or speed changes.
+
+**[Download the English voice sample](docs/audio/fish-free-mcp-demo-en.mp3?raw=1)**. The sample was generated through Gemini and the authenticated gateway. The original file's checksum matches the service receipt retained privately. [Read the demonstration notes](docs/GEMINI-DEMO.md).
+
+Normal service downloads remain owner-authenticated. This one generic demonstration file was explicitly approved for publication; it does not make the private audio store public.
 
 ## Start the local review
 
@@ -80,11 +115,13 @@ The provider currently documents a free window through **November 30, 2026**. Th
 
 ## Screenshots
 
-Actual browser captures of the local fixture, using synthetic configuration and no enrolled credential. The images have not been retouched or taken from a production account.
+The Gemini images above are native captures of the connected demonstration, framed to exclude the account avatar and private navigation. The following interface images come from the isolated local fixture, with empty credential fields. No screenshot content was edited.
 
 | Desktop | Mobile |
 | --- | --- |
-| ![Desktop access setup](docs/screenshots/access-setup.jpg) | ![Mobile sign-in interface](docs/screenshots/mobile.jpg) |
+| ![Desktop sign-in interface](docs/screenshots/desktop.jpg) | ![Mobile sign-in interface](docs/screenshots/mobile.jpg) |
+
+![Local access setup with empty credential fields](docs/screenshots/access-setup.jpg)
 
 ## Review map
 
@@ -99,6 +136,6 @@ Actual browser captures of the local fixture, using synthetic configuration and 
 
 ## Scope and rights
 
-The snapshot removes environment-specific defaults, owner identity, Windows provisioning scripts, private documentation, logs, databases, recordings and Git history. It preserves the core request, authentication and delivery implementation. Public screenshots are from the isolated local fixture; they do not assert that a public service is available.
+The snapshot removes environment-specific defaults, owner identity, Windows provisioning scripts, private documentation, logs, databases, personal recordings and private Git history. It preserves the core request, authentication and delivery implementation. The linked English MP3 is the sole approved audio specimen. The connected screenshots document a real demonstration; they do not offer access to the private service.
 
 Copyright 2026 Kenneth Yepez. No open-source license has been granted. Third-party dependencies retain their own licenses.
