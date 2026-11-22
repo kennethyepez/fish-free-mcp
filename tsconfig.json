@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES2024", "module": "NodeNext", "moduleResolution": "NodeNext",
+    "strict": true, "skipLibCheck": true, "outDir": "dist", "rootDir": "src",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"], "types": ["node"], "esModuleInterop": true,
+    "noUncheckedIndexedAccess": true, "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.ts"]
+}

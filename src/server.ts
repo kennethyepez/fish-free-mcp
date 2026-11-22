@@ -1,0 +1,31 @@
+import { serve } from '@hono/node-server';
+import { DatabaseSync } from 'node:sqlite';
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import type { Server } from 'node:http';
+import { readSecret, configuredOrigin } from './policy.js';
+import { Store } from './store.js';
+import { createAuth } from './auth.js';
+import { createApp } from './app.js';
+import { fishSynthesizer } from './fish.js';
+import { SpeechService } from './speech.js';
+
+process.umask(0o077);
+const data=process.env.DATA_DIR??'/data';
+await mkdir(data,{recursive:true,mode:0o700});
+const development=process.env.APP_ENV==='development';
+const origin=configuredOrigin(process.env.PUBLIC_ORIGIN??'',development);
+const ownerEmail=process.env.OWNER_EMAIL;
+if(!ownerEmail)throw new Error('Set OWNER_EMAIL before starting the service.');
+const db=new DatabaseSync(join(data,'service.sqlite'));
+const store=new Store(db);
+const auth=await createAuth({origin,development,ownerEmail,secret:readSecret(process.env.AUTH_SECRET_FILE??'/run/secrets/auth_secret'),bootstrapSecret:readSecret(process.env.BOOTSTRAP_SECRET_FILE??'/run/secrets/bootstrap_secret')},db,store);
+const speech=new SpeechService(store,join(data,'audio'),fishSynthesizer(readSecret(process.env.FISH_API_KEY_FILE??'/run/secrets/fish_api_key'),'http://egress:3128'),process.env.FREE_VERIFIED_UNTIL??'2026-11-30T23:59:59Z');
+const app=createApp(auth,speech,origin,fileURLToPath(new URL('./public/app.js',import.meta.url)));
+const server=serve({fetch:app.fetch,hostname:'0.0.0.0',port:3000}) as Server;
+server.headersTimeout=10_000;server.requestTimeout=15_000;server.keepAliveTimeout=5_000;server.maxConnections=128;
+let stopped=false;
+function stop(){if(stopped)return;stopped=true;server.close(()=>{db.close();process.exit(0)});setTimeout(()=>process.exit(1),140_000).unref();}
+process.on('SIGTERM',stop);process.on('SIGINT',stop);
+console.log(JSON.stringify({event:'service_started',model:'s2.1-pro-free',port:3000}));

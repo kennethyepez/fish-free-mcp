@@ -1,0 +1,22 @@
+// Disposable local acceptance fixture. No real Fish key or external API call.
+import {randomBytes} from 'node:crypto';
+import {serve} from '@hono/node-server';
+import {DatabaseSync} from 'node:sqlite';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {join,resolve,dirname,basename} from 'node:path';
+import {tmpdir} from 'node:os';
+import {createAuth} from '../src/auth.js';
+import {createApp} from '../src/app.js';
+import {Store} from '../src/store.js';
+import {SpeechService} from '../src/speech.js';
+const dir=await mkdtemp(join(tmpdir(),'fish-free-fixture-'));
+const db=new DatabaseSync(join(dir,'fixture.sqlite'));
+const store=new Store(db);
+const origin='http://localhost:38875';
+const auth=await createAuth({origin,development:true,secret:randomBytes(48).toString('hex'),bootstrapSecret:randomBytes(32).toString('hex'),ownerEmail:'fixture@example.test'},db,store);
+const speech=new SpeechService(store,join(dir,'audio'),async()=>Buffer.from('fixture-no-real-audio'),'2030-01-01T00:00:00Z');
+const app=createApp(auth,speech,origin,resolve('dist/public/app.js'));
+const server=serve({fetch:app.fetch,hostname:'127.0.0.1',port:38875});
+console.log('FIXTURE_READY http://localhost:38875 — no real provider or key');
+const stop=()=>server.close(async()=>{db.close();if(dirname(resolve(dir))!==resolve(tmpdir()) || !basename(dir).startsWith('fish-free-fixture-'))throw new Error('Unexpected cleanup target');await rm(dir,{recursive:true,force:true});process.exit(0);});
+process.once('SIGINT',stop);process.once('SIGTERM',stop);

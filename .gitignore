@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+secrets/
+**/secrets/
+data/
+artifacts/
+*.sqlite*
+*.clixml
+*.log
+*.mp3
+*.wav
+*.mp4
+*.zip
