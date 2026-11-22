@@ -6,12 +6,6 @@ This repository is a runnable, sanitized technical-review snapshot by **Kenneth 
 
 ![English voice sample generated through the connected Gemini app](docs/screenshots/gemini-result.jpg)
 
-### Listen to the English demo
-
-Unmute the player, then press **Play** to hear the sample without leaving this page.
-
-https://github.com/user-attachments/assets/0018c7f1-69c9-40bc-844b-254ed6224756
-
 **[Download the original English MP3 — 10.92 seconds](docs/audio/fish-free-mcp-demo-en.mp3?raw=1)** · [Transcript](docs/audio/transcript.txt) · [Sample integrity and details](docs/audio/demo.json)
 
 ## The problem and the result
