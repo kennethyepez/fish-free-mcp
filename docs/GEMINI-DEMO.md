@@ -15,7 +15,9 @@ The screenshots capture real Gemini UI in English. Native capture regions exclud
 
 ## Listen to the sample
 
-**[Download the original MP3](audio/fish-free-mcp-demo-en.mp3?raw=1)** and open it in an audio player. GitHub may offer a download instead of an inline player; the README does not simulate a player.
+Use the **[embedded player in the README](../README.md#listen-to-the-english-demo)** to listen without downloading. GitHub starts embedded media muted: unmute the player, then press **Play**.
+
+The embedded player uses an audio-only AAC/MP4 playback copy of the same recording for GitHub compatibility. It was encoded from the original MP3 without trimming, time stretching or generating new speech. The **[original MP3](audio/fish-free-mcp-demo-en.mp3?raw=1)** remains unchanged and available separately.
 
 > Welcome to the Fish Free MCP demo. Gemini sends a secure request, and Fish generates this English voice sample. Your API key stays on the server.
 
