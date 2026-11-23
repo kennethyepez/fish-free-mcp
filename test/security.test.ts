@@ -9,7 +9,7 @@ import {SpeechInput,configuredOrigin,officialGoogleCallback,MODEL,assertFreeWind
 import {Store} from '../src/store.js';
 import {SpeechService} from '../src/speech.js';
 import {createAuth} from '../src/auth.js';
-import {createApp,withGeminiOfflineGrant,completedSpeechMetadata} from '../src/app.js';
+import {createApp,withGeminiOfflineGrant,completedSpeechMetadata,audioHandoffToken} from '../src/app.js';
 
 const input=()=>({request_id:randomUUID(),text:'Mantén el pecho abierto.',voice_id:'a'.repeat(32)});
 async function fixture(synth=async()=>Buffer.from('test-audio')) {
@@ -119,6 +119,36 @@ test('completed speech exposes only the owner-authenticated existing-audio URL',
   assert.equal(info.state,'complete');
   assert.ok(!JSON.stringify(info).includes('api_key'));
   assert.throws(()=>completedSpeechMetadata('https://service.test','../../secrets'));
+});
+
+test('a handoff serves only the signed audio while the Gemini connection is enabled',async()=>{
+  let calls=0;
+  const f=await fixture(async()=>{calls++;return Buffer.from('test-audio');});
+  const origin='http://localhost:38873',secret=randomBytes(48).toString('hex');
+  const actor='test-owner',client='registered-client';
+  try{
+    const auth=await createAuth({origin,secret,bootstrapSecret:randomBytes(48).toString('hex'),ownerEmail:'owner@example.test',development:true},f.db,f.store);
+    const app=createApp(auth,f.speech,origin,resolve('dist/public/app.js'));
+    f.store.set('owner_id',actor);
+    f.store.set('gemini_client_id',client);
+    f.store.set('gemini_enabled','1');
+    const job=await f.speech.generate(actor,input());
+    const url=(id:string,expires:number,key:string)=>origin+`/mcp-audio/${id}?expires=${expires}&key=${key}`;
+    const expires=Date.now()+120_000,key=audioHandoffToken(secret,actor,client,job.id,expires);
+    assert.equal((await app.request(origin+'/audio/'+job.id)).status,401);
+    assert.equal((await app.request(origin+'/mcp-audio/'+job.id)).status,401);
+    assert.equal((await app.request(url(randomUUID(),expires,key))).status,401);
+    assert.equal((await app.request(url(job.id,expires-1,key))).status,401);
+    const expired=Date.now()-1000;
+    assert.equal((await app.request(url(job.id,expired,audioHandoffToken(secret,actor,client,job.id,expired)))).status,401);
+    const response=await app.request(url(job.id,expires,key));
+    assert.equal(response.status,200);
+    assert.equal(response.headers.get('cache-control'),'no-store');
+    assert.equal(await response.text(),'test-audio');
+    f.store.set('gemini_enabled','0');
+    assert.equal((await app.request(url(job.id,expires,key))).status,401);
+    assert.equal(calls,1);
+  }finally{await f.close();}
 });
 
 test('connector diagnostics omit credentials, authorization codes and query strings',async()=>{

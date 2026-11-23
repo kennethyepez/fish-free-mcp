@@ -90,7 +90,7 @@ flowchart LR
 | Machine authorization | OAuth authorization code, PKCE S256, audience and scope checks |
 | Job integrity | SQLite ledger, content digest, request UUID and durable status |
 | Provider access | Fixed Fish endpoint and model; restricted outbound proxy |
-| Delivery | MCP audio content plus a private, owner-authenticated download URL |
+| Delivery | A temporary URL for the exact MP3 in a remote task, plus a separate passkey-protected browser download |
 | Deployment template | Non-root containers, read-only roots and internal networking |
 
 ### Tool contract
@@ -100,13 +100,14 @@ flowchart LR
 | `get_configuration` | Read the fixed model, free-window deadline and limits | None |
 | `generate_speech` | Submit one UUID, text and authorized voice ID | One synthesis at most for that request |
 | `get_speech` | Recover an existing status or audio | No new synthesis |
+| `prepare_audio_for_editing` | Renew the short-lived URL for an existing MP3 | No new synthesis |
 
 Reusing a UUID with different content is rejected. An interrupted or ambiguous upstream result is retained for investigation and is not automatically submitted again. The default limits are one generation in flight, five requests per minute, 100 per day, and 8,000 UTF-8 bytes per request.
 
 ## Decisions worth reviewing
 
 - **Use maintained authentication libraries.** The application adds owner/client/session checks around their OAuth and passkey implementations rather than implementing cryptography.
-- **Separate access from delivery.** A download URL contains no bearer token or API key and requires the owner's browser session. Some Gemini clients omit binary audio in model context, so the tool also returns that URL as JSON text.
+- **Separate human and task access.** The browser download uses the owner's passkey session. An authorized task receives a short-lived URL for its specific MP3 in the tool's JSON response.
 - **Make retries explicit.** Claiming a request before the upstream POST prevents a network failure from becoming a blind duplicate generation.
 - **Fail closed on cost.** The only synthesis model is `s2.1-pro-free`. An expired verification window or provider refusal does not activate a paid fallback.
 - **Keep the scope small.** This is a single-owner, single-process service, not a multi-tenant platform or a distributed job system.

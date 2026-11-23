@@ -29,4 +29,8 @@ Hydrogen said it could assess the attachment transcript but could not hear or in
 
 ## Service boundary
 
-Gemini does not receive the Fish API key. The service's normal download route requires the owner's authenticated browser session. Only this generic demonstration file was approved for public distribution; adding it here does not change the deployed gateway, broaden its scopes or publish its private audio store.
+The service keeps the Fish API key server-side. The public English demonstration predates the temporary file workflow. Its original MP3 and screenshots document that earlier run.
+
+The updated gateway gives an authorized Gemini Task a short-lived link to the finished MP3. In a subsequent connected test, Gemini retrieved the file in its task VM and showed it in a downloadable audio player. That recording stays private. The generic English example above remains the public audio specimen.
+
+For the current integration, the generation tool declares a write and external provider access. Status and file retrieval declare read-only behavior. This follows [Google's MCP integration standards](https://developers.google.com/connected-apps/mcp/server-optimization).

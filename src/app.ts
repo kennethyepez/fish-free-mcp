@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { secureHeaders } from 'hono/secure-headers';
@@ -25,12 +26,24 @@ export function withGeminiOfflineGrant(request:Request,clientId:string|undefined
   return new Request(url,request);
 }
 
-// Some MCP clients omit AudioContent from the model context. Return the existing
-// owner-authenticated download route as text too; no signed/public URL or key.
+// The portal download is for humans. A remote task obtains a short-lived file grant.
 export function completedSpeechMetadata(origin:string,id:string) {
   UUID.parse(id);
   return {id,state:'complete',model:MODEL,audio_url:origin+'/audio/'+id,mime_type:'audio/mpeg',download_requires_passkey:true,
-    delivery_note:'Return audio_url as a clickable download link for this existing audio. The owner opens it in their browser and signs in with their Narration passkey if needed. Do not fetch it anonymously or request a Fish API key. Never generate a replacement just to deliver this file.'};
+    delivery_note:'Download the temporary artifact into the active task. Use prepare_audio_for_editing to renew an expired link. The audio_url is the owner’s passkey-protected browser download.'};
+}
+
+const handoffLifetimeMs = 300_000;
+
+export function audioHandoffToken(secret:string,owner:string,client:string,id:string,expires:number) {
+  return createHmac('sha256',secret).update(JSON.stringify(['fish-audio-handoff-v1',owner,client,id,expires])).digest('hex');
+}
+
+function validHandoff(secret:string,owner:string,client:string,id:string,expires:string,token:string,now:number) {
+  if(!UUID.safeParse(id).success || !/^\d{13}$/.test(expires) || !/^[\da-f]{64}$/.test(token))return false;
+  const deadline=Number(expires);
+  if(deadline<=now || deadline>now+handoffLifetimeMs)return false;
+  return timingSafeEqual(Buffer.from(token,'hex'),Buffer.from(audioHandoffToken(secret,owner,client,id,deadline),'hex'));
 }
 
 export function createApp(auth:Auth,speech:SpeechService,origin:string,webFile:string) {
@@ -90,21 +103,54 @@ export function createApp(auth:Auth,speech:SpeechService,origin:string,webFile:s
   app.post('/api/disconnect',async c=>{await owner(c.req.raw);if(c.req.header('origin')!==origin)return c.json({error:'Access denied.'},403);speech.store.set('gemini_enabled','0');return c.json({ok:true});});
   app.post('/api/reconnect',async c=>{await owner(c.req.raw);if(c.req.header('origin')!==origin)return c.json({error:'Access denied.'},403);if(!speech.store.setting('gemini_client_id'))throw new ServiceError('NO_CLIENT','Set up your Gemini credentials first.',409);speech.store.set('gemini_enabled','1');return c.json({ok:true});});
   app.get('/audio/:id',async c=>{const session=await owner(c.req.raw);const audio=await speech.audio(session.user.id,c.req.param('id'));c.header('Content-Type','audio/mpeg');c.header('Content-Disposition',`attachment; filename="narracion-${c.req.param('id')}.mp3"`);return c.body(new Uint8Array(audio));});
+  app.get('/mcp-audio/:id',async c=>{
+    const actor=speech.store.setting('owner_id'),client=speech.store.setting('gemini_client_id');
+    const id=c.req.param('id'),expires=c.req.query('expires')??'',token=c.req.query('key')??'';
+    const {secret}=await auth.$context;
+    if(!actor || !client || speech.store.setting('gemini_enabled')!=='1' || !validHandoff(secret,actor,client,id,expires,token,Date.now()))
+      return c.json({error:'An authorized audio handoff is required.'},401);
+    const audio=await speech.audio(actor,id);
+    c.header('Content-Type','audio/mpeg');
+    c.header('Content-Disposition','attachment; filename="voiceover.mp3"');
+    return c.body(new Uint8Array(audio));
+  });
   app.on(['POST','GET','DELETE'],'/mcp',c=>requireMcpAuth(auth,async(request,claims)=>{
     const actor=claims.sub;
-    if(!actor || actor!==speech.store.setting('owner_id') || claims.client_id!==speech.store.setting('gemini_client_id') || speech.store.setting('gemini_enabled')!=='1')return Response.json({error:'Access denied.'},{status:403});
+    const client=speech.store.setting('gemini_client_id');
+    if(!actor || !client || actor!==speech.store.setting('owner_id') || claims.client_id!==client || speech.store.setting('gemini_enabled')!=='1')return Response.json({error:'Access denied.'},{status:403});
     if(typeof claims.sid!=='string')return Response.json({error:'Your session needs authorization again. Sign in to continue.'},{status:401});
     const context=await auth.$context;
     const session=await context.adapter.findOne<{userId:string;expiresAt:Date}>({model:'session',where:[{field:'id',value:claims.sid}]});
     if(!session || session.userId!==actor || new Date(session.expiresAt).getTime()<=Date.now())return Response.json({error:'Your session needs authorization again. Sign in to continue.'},{status:401});
     if(request.method!=='POST')return new Response(null,{status:405,headers:{Allow:'POST'}});
-    const server=new McpServer({name:'Fish Free',version:'0.1.0'});
+    const server=new McpServer({name:'Fish S2.1 Pro Free',version:'0.1.9'},{
+      instructions:'Generate approved voiceovers using the fixed free model. For a completed request, download artifact.temporary_file_url into the active task and use or attach the MP3. Renew expired links with prepare_audio_for_editing. Keep signed links out of chat.',
+    });
     const text=(value:unknown)=>({content:[{type:'text' as const,text:JSON.stringify(value)}]});
-    const result=async(id:string)=>{const job=speech.status(actor,id);return job.state==='complete'?{content:[{type:'text' as const,text:JSON.stringify(completedSpeechMetadata(origin,job.id))},{type:'audio' as const,mimeType:'audio/mpeg',data:(await speech.audio(actor,id)).toString('base64')}]}:text({id:job.id,state:job.state,error:job.error_code,automatic_retry:false});};
-    server.registerTool('generate_speech',{description:'Generate speech exclusively with Fish s2.1-pro-free. Never use package credits or paid models. Use a new UUID per text/voice pair and reuse it to retrieve results. After a disconnect, call get_speech instead of submitting a new generation.',inputSchema:SpeechInput,annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true}},async input=>{
+    const artifact=(job:ReturnType<SpeechService['status']>)=>{
+      const expires=Math.min(Date.now()+handoffLifetimeMs,new Date(session.expiresAt).getTime());
+      const url=new URL('/mcp-audio/'+job.id,origin);
+      url.searchParams.set('expires',String(expires));
+      url.searchParams.set('key',audioHandoffToken(context.secret,actor,client,job.id,expires));
+      return {file_name:'voiceover.mp3',mime_type:'audio/mpeg',bytes:job.bytes,sha256:job.sha256,
+        temporary_file_url:url.href,expires_at:new Date(expires).toISOString()};
+    };
+    const result=(id:string)=>{
+      const job=speech.status(actor,id);
+      if(job.state!=='complete')return text({id:job.id,state:job.state,error:job.error_code,automatic_retry:false});
+      return text({...completedSpeechMetadata(origin,job.id),artifact:artifact(job)});
+    };
+    server.registerTool('generate_speech',{description:'Generate an MP3 with Fish s2.1-pro-free. Use a valid Fish voice ID. Pass a new request_id UUID for a new voiceover and reuse it if a request disconnects. Download the completed artifact into the active task. Use get_speech to check an existing request.',inputSchema:SpeechInput,annotations:{readOnlyHint:false,destructiveHint:true,idempotentHint:true,openWorldHint:true}},async input=>{
       try {if(!(String(claims.scope??'').split(' ')).includes('tts:generate'))throw new ServiceError('INSUFFICIENT_SCOPE','This connection does not allow speech generation.',403);const job=await speech.generate(actor,input);return await result(job.id);}catch(e){return {...text({error:e instanceof ServiceError?e.message:'Invalid request. Check your input.'}),isError:true};}
     });
-    server.registerTool('get_speech',{description:'Retrieve the status or audio of an existing request without generating or resubmitting anything.',inputSchema:z.strictObject({request_id:UUID}),annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}},async({request_id})=>{try{return await result(request_id);}catch{return {...text({error:'Voiceover not found.'}),isError:true};}});
+    server.registerTool('get_speech',{description:'Check an existing voiceover by its request ID. For a completed request, download artifact.temporary_file_url into the active task to use or attach the MP3.',inputSchema:z.strictObject({request_id:UUID}),annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}},async({request_id})=>{try{return result(request_id);}catch{return {...text({error:'Voiceover not found.'}),isError:true};}});
+    server.registerTool('prepare_audio_for_editing',{description:'When the user wants to use a completed Fish MP3 in an edit, get a five-minute file URL for the remote task runtime. Download it immediately into the current editing workspace and use its bytes. Do not quote the temporary URL in chat. This reuses the existing job and does not generate or change audio.',inputSchema:z.strictObject({request_id:UUID}),annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}},async({request_id})=>{
+      try {
+        const job=speech.status(actor,request_id);
+        if(job.state!=='complete')return text({id:job.id,state:job.state});
+        return text({id:job.id,state:job.state,...artifact(job)});
+      } catch {return {...text({error:'Voiceover not found.'}),isError:true};}
+    });
     server.registerTool('get_configuration',{description:'Read the fixed model, configured availability and limits without revealing keys or generating audio.',inputSchema:z.strictObject({}),annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}},async()=>text({model:MODEL,paid_fallback:false,max_text_utf8_bytes:8000,max_requests_per_minute:5,max_requests_per_day:100,free_verified_until:speech.freeUntil}));
     const transport=new WebStandardStreamableHTTPServerTransport({sessionIdGenerator:undefined,enableJsonResponse:true});
     await server.connect(transport);
