@@ -35,7 +35,9 @@ The text itself is not persisted in the job ledger. A digest is not a substitute
 
 ## Delivery compatibility
 
-The tool returns standard MCP `AudioContent` for clients that support it. It also serializes an authenticated download URL inside `TextContent`, because a client can omit binary audio from the model context. The URL carries no authorization capability; the owner opens it in their own authenticated browser.
+Completed tools serialize a file descriptor in MCP `TextContent`. It includes the MIME type, size, SHA-256 and a temporary download URL. An authorized Gemini task can retrieve the original bytes and return the MP3 as a downloadable file. The link is bound to one request, owner and OAuth client. It expires within five minutes or at session expiry, whichever comes first. Disabling the connector also invalidates its outstanding links.
+
+`prepare_audio_for_editing` renews access to a completed request. The owner's browser route separately requires a passkey session. The tool description tells Gemini to keep signed URLs out of chat.
 
 ## Deliberate boundaries
 

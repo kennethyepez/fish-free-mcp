@@ -8,6 +8,8 @@ The owner authenticates with a passkey. Registration is closed and requires a sh
 
 Gemini uses a confidential OAuth client with an exact registered Google callback and PKCE S256. The MCP route validates the token's issuer, resource audience, owner, registered client, required scope and active session. Anonymous callers and unrelated clients must not receive tools or audio.
 
+The remote task receives a signed link scoped to one completed MP3, its owner and the registered client. Treat the link as a short-lived bearer credential. It expires within five minutes and cannot be used after the connector is disabled. Use the separate passkey-protected route for human downloads.
+
 The Fish key is read from a mounted secret file. It is not an MCP argument, URL parameter, browser field, Docker build argument or tool result. Download URLs require an authenticated owner session; possession of a URL alone does not grant access.
 
 ## Input and outbound restrictions

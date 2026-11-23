@@ -2,7 +2,7 @@
 
 ## Reproducible checks
 
-The public snapshot passed a clean dependency install, TypeScript build and **21 automated tests** on November 22, 2026. The local runtime was Node.js 25.6.0; the GitHub workflow separately targets Node.js 24 LTS. Inspect the actual workflow result rather than assuming that a local build proves a different runtime.
+The public snapshot's CI targets Node.js 24 LTS and runs the TypeScript build, automated tests, publication guard and dependency audit. The workflow also scans Git history for credentials.
 
 The tests cover:
 
@@ -14,7 +14,8 @@ The tests cover:
 - anonymous/forged authorization rejection and closed registration;
 - diagnostic output that omits credentials, OAuth codes and query strings;
 - client-bound offline grants that preserve PKCE and state;
-- private download metadata and anonymous download denial.
+- private download metadata and anonymous download denial;
+- exact audio delivery with a valid short-lived grant, and rejection of modified, expired or disabled grants.
 
 `npm audit` reported zero known dependency vulnerabilities in the checked lockfile on that date. Gitleaks 8.30.1 reported no detected leaks in the publication candidate. These are point-in-time, tool-bounded results; neither is a guarantee of complete security or a container-image attestation.
 
@@ -36,7 +37,7 @@ On November 22, 2026, Gemini invoked the authenticated gateway to generate the p
 
 A fresh Gemini Hydrogen conversation received the complete MP3, with no expected transcript supplied. The attachment transcription matched the spoken script in English. Hydrogen explicitly reported access to that transcript, not to acoustic properties; this is a spoken-text check, **not** a claimed perceptual listening approval. No subjective voice-quality score is asserted.
 
-The screenshots show the linked account status, three live schemas, a configuration tool-call result and the completed English demonstration. The account identity and private service URL remain excluded. The generic English sample is explicitly public; private recordings and raw service receipts are not included.
+The screenshots show the linked account status, the three live schemas from that demonstration, a configuration result and the completed English sample. The current gateway adds `prepare_audio_for_editing` as a fourth tool. The generic English sample is the published audio artifact.
 
 A reviewer must supply their own authorized credentials to reproduce synthesis. The local fixture makes no provider request. See [the demonstration notes](GEMINI-DEMO.md) for the evidence sequence and playback instructions.
 
